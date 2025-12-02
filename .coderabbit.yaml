@@ -1,0 +1,14 @@
+reviews:
+  enable_auto_review: true
+  review_on_push: true
+  path_includes:
+    - "**/*.js"
+    - "**/*.ts"
+    - "**/*.java"
+    - "**/*.py"
+
+chat:
+  enable_discussion: true
+
+allow:
+  - creatureab
