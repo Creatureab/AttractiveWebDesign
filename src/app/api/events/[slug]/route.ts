@@ -24,10 +24,10 @@ interface EventResponse {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await params;
 
     if (!slug || typeof slug !== "string" || slug.trim().length === 0) {
       return NextResponse.json(
