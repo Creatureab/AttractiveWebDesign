@@ -1,4 +1,4 @@
-import { Schema, model, models, Document, Types, Model } from 'mongoose';
+import { Schema, model, models, Document, Types } from 'mongoose';
 import Event from './event.model';
 
 // TypeScript interface for Booking document
@@ -36,9 +36,9 @@ const BookingSchema = new Schema<IBooking>(
   }
 );
 
-// Pre-save hook to validate event exists before creating booking
-BookingSchema.pre<IBooking>('save', async function (next) {
-  const booking = this;
+// Pre-save hook to validate events exists before creating booking
+BookingSchema.pre('save', async function () {
+  const booking = this as IBooking;
 
   // Only validate eventId if it's new or modified
   if (booking.isModified('eventId') || booking.isNew) {
@@ -48,32 +48,29 @@ BookingSchema.pre<IBooking>('save', async function (next) {
       if (!eventExists) {
         const error = new Error(`Event with ID ${booking.eventId} does not exist`);
         error.name = 'ValidationError';
-        // @ts-expect-error - Mongoose type inference issue
-        return next(error);
+        throw error;
       }
     } catch {
-      const validationError = new Error('Invalid event ID format or database error');
+      const validationError = new Error('Invalid events ID format or database error');
       validationError.name = 'ValidationError';
-      // @ts-expect-error - Mongoose type inference issue
-      return next(validationError);
+      throw validationError;
     }
   }
 
-  // @ts-expect-error - Mongoose type inference issue
-  next();
+
 });
 
 // Create index on eventId for faster queries
 BookingSchema.index({ eventId: 1 });
 
-// Create compound index for common queries (event bookings by date)
+// Create compound index for common queries (events bookings by date)
 BookingSchema.index({ eventId: 1, createdAt: -1 });
 
 // Create index on email for user booking lookups
 BookingSchema.index({ email: 1 });
 
-// Enforce one booking per event per email
+// Enforce one booking per events per email
 BookingSchema.index({ eventId: 1, email: 1 }, { unique: true, name: 'uniq_event_email' });
-const Booking: Model<IBooking> = models.Booking || model<IBooking>('Booking', BookingSchema);
+const Booking = models.Booking || model<IBooking>('Booking', BookingSchema);
 
-export default Booking;
+export default Booking
