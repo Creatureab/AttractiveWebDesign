@@ -19,6 +19,7 @@ export const createBooking = async ({ eventId, slug, email }: { eventId: string;
             return {
                 success: false,
                 error: 'You have already booked this event'
+
             };
         }
 
