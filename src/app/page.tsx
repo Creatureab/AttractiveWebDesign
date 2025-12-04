@@ -1,8 +1,7 @@
-import EventCards from "@/components/EventCards";
 import ExploreBtn from "@/components/ExploreBtn";
+import EventCards from "@/components/EventCards";
 import { IEvent } from "@/database/event.model";
 import { cacheLife } from "next/cache";
-
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
@@ -25,7 +24,7 @@ const Page = async () => {
                 <ul className="events">
                     {events && events.length > 0 && events.map((event: IEvent) => (
                         <li key={event.title} className="list-none">
-                            <EventCards title={event.title} image={event.image} slug={event.slug} location={event.location} date={event.date} time={event.time} />
+                            <EventCards {...event} />
                         </li>
                     ))}
                 </ul>
