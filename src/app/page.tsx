@@ -3,12 +3,18 @@ import EventCards from "@/components/EventCards";
 import { IEvent } from "@/database/event.model";
 import { cacheLife } from "next/cache";
 
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-
 const Page = async () => {
     'use cache';
-    cacheLife('hours')
+    cacheLife('hours');
+
+    // FIX: Read env variable INSIDE the component
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+
+    // Helpful error during build:
+    if (!BASE_URL) {
+        throw new Error("❌ NEXT_PUBLIC_BASE_URL is undefined during build! Check Vercel env vars.");
+    }
+
     const response = await fetch(`${BASE_URL}/api/events`);
     const { events } = await response.json();
 
@@ -31,7 +37,7 @@ const Page = async () => {
                 </ul>
             </div>
         </section>
-    )
-}
+    );
+};
 
 export default Page;
