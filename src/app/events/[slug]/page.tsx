@@ -11,6 +11,5 @@ const EventDetailsPage = async ({ params }: { params: Promise<{ slug: string }> 
             </Suspense>
         </main>
     )
-};
-
-export default EventDetailsPage;
+}
+export default EventDetailsPage
