@@ -1,71 +1,66 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import Event from '@/lib/database/event.model';
+import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from 'cloudinary';
-import { Upload } from 'lucide-react';
 
-export async function POST(request: NextRequest) {
-  try {
-    await connectDB();
-    const formData = await request.formData();
+import connectDB from "@/lib/mongodb";
+import { Event } from '@/database';
 
-    // Parse form data and handle array fields
-    const eventData: Record<string, unknown> = {};
+export async function POST(req: NextRequest) {
+    try {
+        await connectDB();
 
-    for (const [key, value] of formData.entries()) {
-      if (key === 'agenda' || key === 'tags') {
-        // Parse JSON arrays
+        const formData = await req.formData();
+
+        let event;
+
         try {
-          eventData[key] = JSON.parse(value as string);
-        } catch {
-          // Fallback: split by comma if not valid JSON
-          eventData[key] = (value as string).split(',').map(s => s.trim());
+            event = Object.fromEntries(formData.entries());
+        } catch (e) {
+            return NextResponse.json({ message: 'Invalid JSON data format' }, { status: 400 })
         }
-      } else {
-        eventData[key] = value;
-      }
+
+        const file = formData.get('image') as File;
+
+        if (!file) return NextResponse.json({ message: 'Image file is required' }, { status: 400 })
+
+        let tags = JSON.parse(formData.get('tags') as string);
+        let agenda = JSON.parse(formData.get('agenda') as string);
+
+
+
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        const uploadResult = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({ resource_type: 'image', folder: 'DevEvent' }, (error, results) => {
+                if (error) return reject(error);
+
+                resolve(results);
+            }).end(buffer);
+        });
+
+        event.image = (uploadResult as { secure_url: string }).secure_url;
+
+        const createdEvent = await Event.create({
+            ...event,
+            tags: tags,
+            agenda: agenda,
+        });
+
+        return NextResponse.json({ message: 'Event created successfully', event: createdEvent }, { status: 201 });
+    } catch (e) {
+        console.error(e);
+        return NextResponse.json({ message: 'Event Creation Failed', error: e instanceof Error ? e.message : 'Unknown' }, { status: 500 })
     }
-    const file = formData.get('image') as File;
+}
 
-    if (!file) {
-      return NextResponse.json({
-        message: 'Image file is required',
-      }, { status: 400 });
+export async function GET() {
+    try {
+        await connectDB();
+
+        const events = await Event.find().sort({ createdAt: -1 });
+
+        return NextResponse.json({ message: 'Events fetched successfully', events }, { status: 200 });
+    } catch (e) {
+        return NextResponse.json({ message: 'Event fetching failed', error: e }, { status: 500 });
     }
-
-    const arraybuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arraybuffer);
-
-    const uploadResult = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          folder: 'DevEvents',
-          resource_type: 'image',
-        },
-        (error, result) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(result);
-          }
-        }
-      ).end(buffer);
-    });
-
-    eventData.image = (uploadResult as { secure_url: string }).secure_url;
-
-    const createdEvent = await Event.create(eventData);
-
-    return NextResponse.json({
-      message: 'Event created successfully',
-      event: createdEvent
-    }, { status: 201 });
-  }
-  catch (e) {
-    console.error('Error creating event:', e);
-    return NextResponse.json({
-      message: 'Event creation failed',
-      error: e instanceof Error ? e.message : 'Unknown error'
-    }, { status: 500 });
-  }
 }

@@ -1,18 +1,23 @@
-slug: string;
-description: string;
-overview: string;
-image: string;
-venue: string;
-location: string;
-date: string;
-time: string;
-mode: string;
-audience: string;
-agenda: string[];
-organizer: string;
-tags: string[];
-createdAt: Date;
-updatedAt: Date;
+import { Schema, model, models, Document } from 'mongoose';
+
+// TypeScript interface for Event document
+export interface IEvent extends Document {
+  title: string;
+  slug: string;
+  description: string;
+  overview: string;
+  image: string;
+  venue: string;
+  location: string;
+  date: string;
+  time: string;
+  mode: string;
+  audience: string;
+  agenda: string[];
+  organizer: string;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const EventSchema = new Schema<IEvent>(
@@ -105,7 +110,7 @@ const EventSchema = new Schema<IEvent>(
 );
 
 // Pre-save hook for slug generation and data normalization
-EventSchema.pre('save', function () {
+EventSchema.pre('save', async function () {
   const event = this as IEvent;
 
   // Generate slug only if title changed or document is new
@@ -122,6 +127,8 @@ EventSchema.pre('save', function () {
   if (event.isModified('time')) {
     event.time = normalizeTime(event.time);
   }
+
+
 });
 
 // Helper function to generate URL-friendly slug
@@ -172,7 +179,7 @@ function normalizeTime(timeString: string): string {
 }
 
 // Create unique index on slug for better performance
-EventSchema.index({ slug: 1 }, { unique: true });
+
 
 // Create compound index for common queries
 EventSchema.index({ date: 1, mode: 1 });

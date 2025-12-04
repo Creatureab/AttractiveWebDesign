@@ -1,79 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import connectDB from '@/lib/mongodb';
-import { Event, type IEvent } from '@/lib/database';
+import { Event } from '@/database';
 
-interface EventResponse {
-  _id: string;
-  title: string;
-  slug: string;
-  description: string;
-  overview: string;
-  image: string;
-  venue: string;
-  location: string;
-  date: string;
-  time: string;
-  mode: string;
-  audience: string;
-  agenda: string[];
-  organizer: string;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-}
+// Define route params type for type safety
+type RouteParams = {
+  params: Promise<{
+    slug: string;
+  }>;
+};
 
+/**
+ * GET /api/events/[slug]
+ * Fetches a single events by its slug
+ */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
-) {
+  req: NextRequest,
+  { params }: RouteParams
+): Promise<NextResponse> {
   try {
+    // Connect to database
+    await connectDB();
+
+    // Await and extract slug from params
     const { slug } = await params;
 
-    if (!slug || typeof slug !== "string" || slug.trim().length === 0) {
+    // Validate slug parameter
+    if (!slug || typeof slug !== 'string' || slug.trim() === '') {
       return NextResponse.json(
-        { error: "Invalid or missing slug parameter" },
+        { message: 'Invalid or missing slug parameter' },
         { status: 400 }
       );
     }
 
-    const normalizedSlug = slug.trim().toLowerCase();
+    // Sanitize slug (remove any potential malicious input)
+    const sanitizedSlug = slug.trim().toLowerCase();
 
-    await connectDB();
+    // Query events by slug
+    const event = await Event.findOne({ slug: sanitizedSlug }).lean();
 
-    const event = await Event.findOne({ slug: normalizedSlug }).lean() as IEvent | null;
-
+    // Handle events not found
     if (!event) {
       return NextResponse.json(
-        { error: `Event with slug "${normalizedSlug}" not found` },
+        { message: `Event with slug '${sanitizedSlug}' not found` },
         { status: 404 }
       );
     }
 
-    const eventData: EventResponse = {
-      _id: event._id.toString(),
-      title: event.title,
-      slug: event.slug,
-      description: event.description,
-      overview: event.overview,
-      image: event.image,
-      venue: event.venue,
-      location: event.location,
-      date: event.date,
-      time: event.time,
-      mode: event.mode,
-      audience: event.audience,
-      agenda: event.agenda,
-      organizer: event.organizer,
-      tags: event.tags,
-      createdAt: new Date(event.createdAt).toISOString(),
-      updatedAt: new Date(event.updatedAt).toISOString(),
-    };
-
-    return NextResponse.json(eventData, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching event by slug:", error);
+    // Return successful response with events data
     return NextResponse.json(
-      { error: "Internal server error. Please try again later." },
+      { message: 'Event fetched successfully', event },
+      { status: 200 }
+    );
+  } catch (error) {
+    // Log error for debugging (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Error fetching events by slug:', error);
+    }
+
+    // Handle specific error types
+    if (error instanceof Error) {
+      // Handle database connection errors
+      if (error.message.includes('MONGODB_URI')) {
+        return NextResponse.json(
+          { message: 'Database configuration error' },
+          { status: 500 }
+        );
+      }
+
+      // Return generic error with error message
+      return NextResponse.json(
+        { message: 'Failed to fetch events', error: error.message },
+        { status: 500 }
+      );
+    }
+
+    // Handle unknown errors
+    return NextResponse.json(
+      { message: 'An unexpected error occurred' },
       { status: 500 }
     );
   }
