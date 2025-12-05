@@ -7,8 +7,7 @@ const Page = async () => {
     'use cache';
     cacheLife('hours');
 
-    // FIX: Read env variable INSIDE the component
-    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://attractive-web-design.vercel.app';
 
 
 
