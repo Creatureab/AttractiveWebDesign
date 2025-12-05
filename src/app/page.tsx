@@ -10,10 +10,7 @@ const Page = async () => {
     // FIX: Read env variable INSIDE the component
     const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
-    // Helpful error during build:
-    if (!BASE_URL) {
-        throw new Error("❌ NEXT_PUBLIC_BASE_URL is undefined during build! Check Vercel env vars.");
-    }
+
 
     const response = await fetch(`${BASE_URL}/api/events`);
     const { events } = await response.json();
