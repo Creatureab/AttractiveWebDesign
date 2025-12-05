@@ -1,23 +1,20 @@
+"use client";
+
 import ExploreBtn from "@/components/ExploreBtn";
 import EventCards from "@/components/EventCards";
 import { IEvent } from "@/database/event.model";
-import { cacheLife } from "next/cache";
+import { useEffect, useState } from "react";
 
-const Page = async () => {
-    'use cache';
-    cacheLife('hours');
-
-    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://attractive-web-design.vercel.app';
-
-
-
-    const response = await fetch(`${BASE_URL}/api/events`);
-    const { events } = await response.json();
-
+const PageComponent = ({ events }: { events: any }) => {
     return (
         <section>
-            <h1 className="text-center">The Hub for Every Dev <br /> Event You Can't Miss</h1>
-            <p className="text-center mt-5">Hackathons, Meetups, and Conferences, All in One Place</p>
+            <h1 className="text-center">
+                The Hub for Every Dev <br /> Event You Can't Miss
+            </h1>
+            <p className="text-center mt-5">
+                Hackathons, Meetups, and Conferences, All in One
+                Placehttp://localhost:3000
+            </p>
 
             <ExploreBtn />
 
@@ -25,15 +22,38 @@ const Page = async () => {
                 <h3>Featured Events</h3>
 
                 <ul className="events">
-                    {events && events.length > 0 && events.map((event: IEvent) => (
-                        <li key={event.title} className="list-none">
-                            <EventCards {...event} />
-                        </li>
-                    ))}
+                    {events &&
+                        events.length > 0 &&
+                        events.map((event: IEvent) => (
+                            <li key={event.title} className="list-none">
+                                <EventCards {...event} />
+                            </li>
+                        ))}
                 </ul>
             </div>
         </section>
     );
+};
+
+const Page = () => {
+    const [events, setEvents] = useState([]);
+
+    useEffect(() => {
+        const fetchEvents = async () => {
+            // FIX: Read env variable INSIDE the component
+            const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+
+            const response = await fetch(`${BASE_URL}/api/events`, {
+                cache: "no-store",
+            });
+            const { events } = await response.json();
+            setEvents(events);
+        };
+        fetchEvents();
+    }, []);
+
+    //   const events = [] as any; // Placeholder for fetched events
+    return <PageComponent events={events} />;
 };
 
 export default Page;
