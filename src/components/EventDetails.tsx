@@ -1,22 +1,16 @@
-import { cacheLife } from "next/cache";
 import Image from "next/image";
 import BookEvent from "@/components/BookEvent";
 import EventCards from "@/components/EventCards";
 import { IEvent } from "@/database/event.model";
 import { getSimilarFunctionFromSlug } from "@/lib/actions/event.actions";
-import { notFound } from "next/navigation";
 
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-
-const EventDetailItem = ({ icon, alt, label }: { icon: string; alt: string; label: string }) => {
-    return (
-        <div className="flex-row-gap-2 items-center">
-            <Image src={icon} alt={alt} width={17} height={17} />
-            <p>{label}</p>
-        </div>
-    );
-};
+// Helper Components
+const EventDetailItem = ({ icon, alt, label }: { icon: string; alt: string; label: string }) => (
+    <div className="flex-row-gap-2 items-center">
+        <Image src={icon} alt={alt} width={17} height={17} />
+        <p>{label}</p>
+    </div>
+);
 
 const EventAgenda = ({ agendaItem }: { agendaItem: string[] }) => {
     return (
@@ -41,21 +35,33 @@ const EventTags = ({ tags }: { tags: string[] }) => {
     );
 };
 
-const EventDetails = async ({ params }: { params: Promise<string> }) => {
-    'use cache';
-    cacheLife('hours')
-
-    const slug = await params;
+const EventDetails = async ({ params }: { params: Promise<{ slug: string }> }) => {
+    // Extract slug from URL params (Next.js 15+ makes params a Promise)
+    const { slug } = await params;
 
     let event;
     try {
-        const request = await fetch(`${BASE_URL}/api/events/${slug}`, {
+        // Build full API URL for server-side fetch
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const apiUrl = `${baseUrl}/api/events/${slug}`;
+
+        const request = await fetch(apiUrl, {
             next: { revalidate: 60 }
         });
 
         if (!request.ok) {
             if (request.status === 404) {
-                return notFound();
+                return (
+                    <div className="min-h-screen flex items-center justify-center">
+                        <div className="text-center">
+                            <h1 className="text-4xl font-bold text-gray-800 mb-4">Event Not Found</h1>
+                            <p className="text-gray-600 mb-8">The event you're looking for doesn't exist.</p>
+                            <a href="/" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                Go Home
+                            </a>
+                        </div>
+                    </div>
+                );
             }
             throw new Error(`Failed to fetch event: ${request.statusText}`);
         }
@@ -64,11 +70,31 @@ const EventDetails = async ({ params }: { params: Promise<string> }) => {
         event = response.event;
 
         if (!event) {
-            return notFound();
+            return (
+                <div className="min-h-screen flex items-center justify-center">
+                    <div className="text-center">
+                        <h1 className="text-4xl font-bold text-gray-800 mb-4">Event Not Found</h1>
+                        <p className="text-gray-600 mb-8">The event you're looking for doesn't exist.</p>
+                        <a href="/" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            Go Home
+                        </a>
+                    </div>
+                </div>
+            );
         }
     } catch (error) {
         console.error("Error fetching event:", error);
-        return notFound();
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <h1 className="text-4xl font-bold text-gray-800 mb-4">Error Loading Event</h1>
+                    <p className="text-gray-600 mb-8">There was an error loading this event. Please try again later.</p>
+                    <a href="/" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Go Home
+                    </a>
+                </div>
+            </div>
+        );
     }
     const bookings = 10;
     const similarEvents = await getSimilarFunctionFromSlug(slug);
@@ -84,12 +110,23 @@ const EventDetails = async ({ params }: { params: Promise<string> }) => {
         agenda,
         tags,
         audience,
-        calendar,
         organizer,
         _id
     } = event;
 
-    if (!description) return notFound();
+    if (!description) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <h1 className="text-4xl font-bold text-gray-800 mb-4">Event Not Available</h1>
+                    <p className="text-gray-600 mb-8">This event doesn't have a description.</p>
+                    <a href="/" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Go Home
+                    </a>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <section id="event">
@@ -110,7 +147,7 @@ const EventDetails = async ({ params }: { params: Promise<string> }) => {
                     <section className="flex-col-gap-2">
                         <h2>Event Details</h2>
 
-                        <EventDetailItem icon="/icons/calender.svg" alt="calender" label={date} />
+                        <EventDetailItem icon="/icons/calendar.svg" alt="calendar" label={date} />
                         <EventDetailItem icon="/icons/clock.svg" alt="clock" label={time} />
                         <EventDetailItem icon="/icons/pin.svg" alt="pin" label={location} />
                         <EventDetailItem icon="/icons/mode.svg" alt="mode" label={mode} />

@@ -5,19 +5,18 @@ import Link from "next/link"
 const NavBar = () => {
   return (
     <header>
-    <nav>
+      <nav>
         <Link href='/' className="logo">
-            <Image src="/icons/logo.png" alt="logo" width={24} height={24} />
+          <Image src="/icons/logo.png" alt="logo" width={24} height={24} />
 
-            <p>DevEvent</p>
+          <p>DevEvent</p>
         </Link>
         <ul>
-            <Link href="/">Home</Link>
-            <Link href="/">Events</Link>
-            <Link href="/">Create Event</Link>
-            
+          <Link href="/">Home</Link>
+          <Link href="/create-event">Create Event</Link>
+
         </ul>
-    </nav>
+      </nav>
     </header>
   )
 }

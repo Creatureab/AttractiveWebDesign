@@ -1,66 +1,71 @@
 import { NextRequest, NextResponse } from "next/server";
-import { v2 as cloudinary } from 'cloudinary';
+import { v2 as cloudinary } from "cloudinary";
 
 import connectDB from "@/lib/mongodb";
-import { Event } from '@/database';
+import { Event } from "@/database";
+
+// Cloudinary Config
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(req: NextRequest) {
     try {
         await connectDB();
 
         const formData = await req.formData();
+        const event: any = {};
 
-        let event;
+        formData.forEach((value, key) => {
+            event[key] = value;
+        });
 
-        try {
-            event = Object.fromEntries(formData.entries());
-        } catch (e) {
-            return NextResponse.json({ message: 'Invalid JSON data format' }, { status: 400 })
+        const file = formData.get("image") as File;
+
+        if (!file) {
+            return NextResponse.json({ message: "Image is required" }, { status: 400 });
         }
 
-        const file = formData.get('image') as File;
+        // Convert file to buffer
+        const buffer = Buffer.from(await file.arrayBuffer());
 
-        if (!file) return NextResponse.json({ message: 'Image file is required' }, { status: 400 })
-
-        let tags = JSON.parse(formData.get('tags') as string);
-        let agenda = JSON.parse(formData.get('agenda') as string);
-
-
-
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        const uploadResult = await new Promise((resolve, reject) => {
-            cloudinary.uploader.upload_stream({ resource_type: 'image', folder: 'DevEvent' }, (error, results) => {
-                if (error) return reject(error);
-
-                resolve(results);
-            }).end(buffer);
+        // Upload to Cloudinary
+        const uploadResult: any = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+                { folder: "DevEvents", resource_type: "image" },
+                (error, result) => {
+                    if (error) reject(error);
+                    resolve(result);
+                }
+            ).end(buffer);
         });
 
-        event.image = (uploadResult as { secure_url: string }).secure_url;
+        event.image = uploadResult.secure_url;
 
-        const createdEvent = await Event.create({
-            ...event,
-            tags: tags,
-            agenda: agenda,
-        });
+        event.tags = JSON.parse(event.tags || "[]");
+        event.agenda = JSON.parse(event.agenda || "[]");
 
-        return NextResponse.json({ message: 'Event created successfully', event: createdEvent }, { status: 201 });
-    } catch (e) {
-        console.error(e);
-        return NextResponse.json({ message: 'Event Creation Failed', error: e instanceof Error ? e.message : 'Unknown' }, { status: 500 })
+        const createdEvent = await Event.create(event);
+
+        return NextResponse.json(
+            { message: "Event created successfully", event: createdEvent },
+            { status: 201 }
+        );
+    } catch (error: any) {
+        console.error(error);
+        return NextResponse.json(
+            { message: "Event creation failed", error: error.message },
+            { status: 500 }
+        );
     }
 }
 
 export async function GET() {
-    try {
-        await connectDB();
+    await connectDB();
 
-        const events = await Event.find().sort({ createdAt: -1 });
+    const events = await Event.find().sort({ createdAt: -1 });
 
-        return NextResponse.json({ message: 'Events fetched successfully', events }, { status: 200 });
-    } catch (e) {
-        return NextResponse.json({ message: 'Event fetching failed', error: e }, { status: 500 });
-    }
+    return NextResponse.json({ events }, { status: 200 });
 }
