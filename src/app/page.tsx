@@ -13,7 +13,7 @@ const PageComponent = ({ events }: { events: any }) => {
             </h1>
             <p className="text-center mt-5">
                 Hackathons, Meetups, and Conferences, All in One
-                Placehttp://localhost:3000
+                Place.
             </p>
 
             <ExploreBtn />

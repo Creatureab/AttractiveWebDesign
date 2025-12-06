@@ -115,7 +115,7 @@ EventSchema.pre('save', async function () {
 
   // Generate slug only if title changed or document is new
   if (event.isModified('title') || event.isNew) {
-    event.slug = generateSlug(event.title);
+    event.slug = await generateSlug(event.title);
   }
 
   // Normalize date to ISO format if it's not already
@@ -131,15 +131,26 @@ EventSchema.pre('save', async function () {
 
 });
 
-// Helper function to generate URL-friendly slug
-function generateSlug(title: string): string {
-  return title
+// Helper function to generate URL-friendly slug with uniqueness
+async function generateSlug(title: string): Promise<string> {
+  const baseSlug = title
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
     .replace(/\s+/g, '-') // Replace spaces with hyphens
     .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+
+  // Check if slug exists and add suffix if needed
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (await Event.findOne({ slug })) {
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  return slug;
 }
 
 // Helper function to normalize date to ISO format
