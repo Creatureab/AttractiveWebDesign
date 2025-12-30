@@ -12,7 +12,7 @@ const NavBar = () => {
           <p>DevEvent</p>
         </Link>
         <ul>
-          <Link href="/">Home</Link>
+          <Link href="/">home</Link>
           <Link href="/create-event">Create Event</Link>
 
         </ul>
